@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <cmath>
 
 #undef min
 #undef max
@@ -48,7 +49,7 @@ struct Math
     static float gaussian(float x, float a, float b, float c)
     {
         const float n = x-b;
-        return a * std::exp(-(n * n)/(2.0f * c * c));
+        return a * exp(-(n * n)/(2.0f * c * c));
     }
 };
 
