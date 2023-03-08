@@ -34,6 +34,9 @@ else()
   target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
 
+# Copy res dir to the binary directory
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/res DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
 if(MSVC)
    foreach(lib ${SFML_LIBS})
       get_target_property(lib_path ${lib} LOCATION)
