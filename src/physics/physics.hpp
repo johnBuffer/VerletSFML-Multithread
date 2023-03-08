@@ -19,9 +19,9 @@ struct PhysicSolver
 
     PhysicSolver(IVec2 size, tp::ThreadPool& tp)
         : grid(size.x, size.y)
-        , sub_steps(8)
-        , world_size(to<float>(size.x), to<float>(size.y))
-        , thread_pool{tp}
+        , world_size(to<float>(size.x)
+        , to<float>(size.y))
+        ,  sub_steps(8), thread_pool{tp}
     {
         grid.clear();
     }
