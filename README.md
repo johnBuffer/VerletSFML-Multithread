@@ -8,21 +8,21 @@
 
 Create a `build` directory
 
-```sh
+```bash
 mkdir build
 cd build
 ```
 
 **Configure** and **build** the project
 
-```sh
+```bash
 cmake ..
 cmake --build .
 ```
 
 On **Windows** it will build in **debug** by default. To build in release you need to build using this command
 
-```sh
+```bash
 camke --build . --config Release
 ```
 
