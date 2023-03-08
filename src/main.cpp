@@ -17,6 +17,8 @@ int main()
     RenderContext& render_context = app.getRenderContext();
     // Initialize solver and renderer
 
+    /* The number of threads should be adjusted so that it divides the world size or some of the grid's cells
+       won't be processed */
     tp::ThreadPool thread_pool(15);
     const IVec2 world_size{300, 300};
     PhysicSolver solver{world_size, thread_pool};
