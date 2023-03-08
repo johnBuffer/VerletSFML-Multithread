@@ -39,8 +39,6 @@ int main()
         app.setFramerateLimit(target_fps);
     });
 
-    float object_time = 0.0f;
-
     // Main loop
     const float dt = 1.0f / static_cast<float>(fps_cap);
     while (app.run()) {
@@ -48,11 +46,9 @@ int main()
             for (uint32_t i{20}; i--;) {
                 const auto id = solver.createObject({2.0f, 10.0f + 1.1f * i});
                 solver.objects[id].last_position.x -= 0.2f;
-                solver.objects[id].color = ColorUtils::getRainbow(id * 0.001f);//colors[id];
-                object_time = 0.0f;
+                solver.objects[id].color = ColorUtils::getRainbow(id * 0.0001f);
             }
         }
-        object_time += dt;
 
         solver.update(dt);
 

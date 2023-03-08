@@ -84,14 +84,15 @@ struct PhysicSolver
         const uint32_t thread_count = thread_pool.m_thread_count;
         const uint32_t slice_count  = thread_count * 2;
         const uint32_t slice_size   = (grid.width / slice_count) * grid.height;
-
+        // Find collisions in two passes to avoid data races
+        // First collision pass
         for (uint32_t i{0}; i < thread_count; ++i) {
             thread_pool.addTask([this, i, slice_size]{
                 solveCollisionThreaded(2 * i, slice_size);
             });
         }
         thread_pool.waitForCompletion();
-
+        // Second collision pass
         for (uint32_t i{0}; i < thread_count; ++i) {
             thread_pool.addTask([this, i, slice_size]{
                 solveCollisionThreaded(2 * i + 1, slice_size);
@@ -103,21 +104,18 @@ struct PhysicSolver
     // Add a new object to the solver
     uint64_t addObject(const PhysicObject& object)
     {
-        const uint64_t object_id = objects.push_back(object);
-        /*PhysicObject& new_object = objects[object_id];*/
-        return object_id;
+        return objects.push_back(object);
     }
 
     // Add a new object to the solver
     uint64_t createObject(Vec2 pos)
     {
-        const civ::ID object_id = objects.emplace_back(pos);
-        /*PhysicObject* new_object = &objects[object_id];*/
-        return object_id;
+        return objects.emplace_back(pos);
     }
 
     void update(float dt)
     {
+        // Perform the sub steps
         const float sub_dt = dt / static_cast<float>(sub_steps);
         for (uint32_t i(sub_steps); i--;) {
             addObjectsToGrid();
@@ -129,7 +127,7 @@ struct PhysicSolver
     void addObjectsToGrid()
     {
         grid.clear();
-
+        // Safety border to avoid adding object outside the grid
         uint32_t i{0};
         for (const PhysicObject& obj : objects.data) {
             if (obj.position.x > 1.0f && obj.position.x < world_size.x - 1.0f &&
