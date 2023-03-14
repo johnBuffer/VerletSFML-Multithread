@@ -20,7 +20,7 @@ cmake ..
 cmake --build .
 ```
 
-On **Windows** it will build in **debug** by default. To build in release you need to build using this command
+On **Windows** it will build in **debug** by default. To build in release you need to use this command
 
 ```bash
 camke --build . --config Release
