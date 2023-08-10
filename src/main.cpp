@@ -1,11 +1,9 @@
 #include <iostream>
 
 #include "engine/window_context_handler.hpp"
-#include "engine/common/number_generator.hpp"
 #include "engine/common/color_utils.hpp"
 
 #include "physics/physics.hpp"
-#include "thread_pool/thread_pool.hpp"
 #include "renderer/renderer.hpp"
 
 

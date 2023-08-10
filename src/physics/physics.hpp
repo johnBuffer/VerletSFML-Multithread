@@ -3,7 +3,6 @@
 #include "physic_object.hpp"
 #include "engine/common/utils.hpp"
 #include "engine/common/index_vector.hpp"
-#include "thread_pool/thread_pool.hpp"
 
 
 struct PhysicSolver
