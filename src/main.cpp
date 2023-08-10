@@ -11,18 +11,14 @@
 
 int main()
 {
-    const uint32_t window_width  = 1920;
+    const uint32_t window_width  = 1080;
     const uint32_t window_height = 1080;
     WindowContextHandler app("Verlet-MultiThread", sf::Vector2u(window_width, window_height), sf::Style::Default);
     RenderContext& render_context = app.getRenderContext();
     // Initialize solver and renderer
-
-    /* The number of threads should be adjusted so that it divides the world size or some of the grid's cells
-       won't be processed */
-    tp::ThreadPool thread_pool(10);
-    const IVec2 world_size{300, 300};
-    PhysicSolver solver{world_size, thread_pool};
-    Renderer renderer(solver, thread_pool);
+    const IVec2 world_size{100, 100};
+    PhysicSolver solver{world_size};
+    Renderer renderer(solver);
 
     const float margin = 20.0f;
     const auto  zoom   = static_cast<float>(window_height - margin) / static_cast<float>(world_size.y);
@@ -44,7 +40,7 @@ int main()
     // Main loop
     const float dt = 1.0f / static_cast<float>(fps_cap);
     while (app.run()) {
-        if (solver.objects.size() < 80000 && emit) {
+        if (solver.objects.size() < 10000 && emit) {
             for (uint32_t i{20}; i--;) {
                 const auto id = solver.createObject({2.0f, 10.0f + 1.1f * i});
                 solver.objects[id].last_position.x -= 0.2f;

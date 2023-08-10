@@ -15,13 +15,11 @@ struct PhysicSolver
 
     // Simulation solving pass count
     uint32_t        sub_steps;
-    tp::ThreadPool& thread_pool;
 
-    PhysicSolver(IVec2 size, tp::ThreadPool& tp)
+    PhysicSolver(IVec2 size)
         : grid{size.x, size.y}
         , world_size{to<float>(size.x), to<float>(size.y)}
         , sub_steps{8}
-        , thread_pool{tp}
     {
         grid.clear();
     }
@@ -68,37 +66,13 @@ struct PhysicSolver
         }
     }
 
-    void solveCollisionThreaded(uint32_t i, uint32_t slice_size)
-    {
-        const uint32_t start = i * slice_size;
-        const uint32_t end   = (i + 1) * slice_size;
-        for (uint32_t idx{start}; idx < end; ++idx) {
-            processCell(grid.data[idx], idx);
-        }
-    }
-
-    // Find colliding atoms
     void solveCollisions()
     {
-        // Multi-thread grid
-        const uint32_t thread_count = thread_pool.m_thread_count;
-        const uint32_t slice_count  = thread_count * 2;
-        const uint32_t slice_size   = (grid.width / slice_count) * grid.height;
-        // Find collisions in two passes to avoid data races
-        // First collision pass
-        for (uint32_t i{0}; i < thread_count; ++i) {
-            thread_pool.addTask([this, i, slice_size]{
-                solveCollisionThreaded(2 * i, slice_size);
-            });
+        uint32_t i{0};
+        for (auto& cell : grid.data) {
+            processCell(cell, i);
+            ++i;
         }
-        thread_pool.waitForCompletion();
-        // Second collision pass
-        for (uint32_t i{0}; i < thread_count; ++i) {
-            thread_pool.addTask([this, i, slice_size]{
-                solveCollisionThreaded(2 * i + 1, slice_size);
-            });
-        }
-        thread_pool.waitForCompletion();
     }
 
     // Add a new object to the solver
@@ -120,7 +94,7 @@ struct PhysicSolver
         for (uint32_t i(sub_steps); i--;) {
             addObjectsToGrid();
             solveCollisions();
-            updateObjects_multi(sub_dt);
+            updateObjects(sub_dt);
         }
     }
 
@@ -138,28 +112,25 @@ struct PhysicSolver
         }
     }
 
-    void updateObjects_multi(float dt)
+    void updateObjects(float dt)
     {
-        thread_pool.dispatch(to<uint32_t>(objects.size()), [&](uint32_t start, uint32_t end){
-            for (uint32_t i{start}; i < end; ++i) {
-                PhysicObject& obj = objects.data[i];
-                // Add gravity
-                obj.acceleration += gravity;
-                // Apply Verlet integration
-                obj.update(dt);
-                // Apply map borders collisions
-                const float margin = 2.0f;
-                if (obj.position.x > world_size.x - margin) {
-                    obj.position.x = world_size.x - margin;
-                } else if (obj.position.x < margin) {
-                    obj.position.x = margin;
-                }
-                if (obj.position.y > world_size.y - margin) {
-                    obj.position.y = world_size.y - margin;
-                } else if (obj.position.y < margin) {
-                    obj.position.y = margin;
-                }
+        for (auto& obj : objects) {
+            // Add gravity
+            obj.acceleration += gravity;
+            // Apply Verlet integration
+            obj.update(dt);
+            // Apply map borders collisions
+            const float margin = 2.0f;
+            if (obj.position.x > world_size.x - margin) {
+                obj.position.x = world_size.x - margin;
+            } else if (obj.position.x < margin) {
+                obj.position.x = margin;
             }
-        });
+            if (obj.position.y > world_size.y - margin) {
+                obj.position.y = world_size.y - margin;
+            } else if (obj.position.y < margin) {
+                obj.position.y = margin;
+            }
+        }
     }
 };

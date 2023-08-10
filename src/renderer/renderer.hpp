@@ -12,10 +12,8 @@ struct Renderer
     sf::VertexArray objects_va;
     sf::Texture     object_texture;
 
-    tp::ThreadPool& thread_pool;
-
     explicit
-    Renderer(PhysicSolver& solver_, tp::ThreadPool& tp);
+    Renderer(PhysicSolver& solver_);
 
     void render(RenderContext& context);
 

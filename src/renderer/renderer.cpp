@@ -1,11 +1,10 @@
 #include "renderer.hpp"
 
 
-Renderer::Renderer(PhysicSolver& solver_, tp::ThreadPool& tp)
+Renderer::Renderer(PhysicSolver& solver_)
     : solver{solver_}
     , world_va{sf::Quads, 4}
     , objects_va{sf::Quads}
-    , thread_pool{tp}
 {
     initializeWorldVA();
 
@@ -46,28 +45,27 @@ void Renderer::updateParticlesVA()
 {
     objects_va.resize(solver.objects.size() * 4);
 
-    const float texture_size = 1024.0f;
-    const float radius       = 0.5f;
-    thread_pool.dispatch(to<uint32_t>(solver.objects.size()), [&](uint32_t start, uint32_t end) {
-        for (uint32_t i{start}; i < end; ++i) {
-            const PhysicObject& object = solver.objects.data[i];
-            const uint32_t idx = i << 2;
-            objects_va[idx + 0].position = object.position + Vec2{-radius, -radius};
-            objects_va[idx + 1].position = object.position + Vec2{ radius, -radius};
-            objects_va[idx + 2].position = object.position + Vec2{ radius,  radius};
-            objects_va[idx + 3].position = object.position + Vec2{-radius,  radius};
-            objects_va[idx + 0].texCoords = {0.0f        , 0.0f};
-            objects_va[idx + 1].texCoords = {texture_size, 0.0f};
-            objects_va[idx + 2].texCoords = {texture_size, texture_size};
-            objects_va[idx + 3].texCoords = {0.0f        , texture_size};
+    const float    texture_size  = 1024.0f;
+    const float    radius        = 0.5f;
+    const uint64_t objects_count = solver.objects.size();
+    for (uint64_t i{0}; i < objects_count; ++i) {
+        const PhysicObject& object = solver.objects.data[i];
+        const uint64_t idx = i << 2;
+        objects_va[idx + 0].position = object.position + Vec2{-radius, -radius};
+        objects_va[idx + 1].position = object.position + Vec2{ radius, -radius};
+        objects_va[idx + 2].position = object.position + Vec2{ radius,  radius};
+        objects_va[idx + 3].position = object.position + Vec2{-radius,  radius};
+        objects_va[idx + 0].texCoords = {0.0f        , 0.0f};
+        objects_va[idx + 1].texCoords = {texture_size, 0.0f};
+        objects_va[idx + 2].texCoords = {texture_size, texture_size};
+        objects_va[idx + 3].texCoords = {0.0f        , texture_size};
 
-            const sf::Color color = object.color;
-            objects_va[idx + 0].color = color;
-            objects_va[idx + 1].color = color;
-            objects_va[idx + 2].color = color;
-            objects_va[idx + 3].color = color;
-        }
-    });
+        const sf::Color color = object.color;
+        objects_va[idx + 0].color = color;
+        objects_va[idx + 1].color = color;
+        objects_va[idx + 2].color = color;
+        objects_va[idx + 3].color = color;
+    }
 }
 
 void Renderer::renderHUD(RenderContext&)
