@@ -68,10 +68,8 @@ struct PhysicSolver
         }
     }
 
-    void solveCollisionThreaded(uint32_t i, uint32_t slice_size)
+    void solveCollisionThreaded(uint32_t start, uint32_t end)
     {
-        const uint32_t start = i * slice_size;
-        const uint32_t end   = (i + 1) * slice_size;
         for (uint32_t idx{start}; idx < end; ++idx) {
             processCell(grid.data[idx], idx);
         }
@@ -84,18 +82,30 @@ struct PhysicSolver
         const uint32_t thread_count = thread_pool.m_thread_count;
         const uint32_t slice_count  = thread_count * 2;
         const uint32_t slice_size   = (grid.width / slice_count) * grid.height;
+        const uint32_t last_cell    = (2 * (thread_count - 1) + 2) * slice_size;
         // Find collisions in two passes to avoid data races
+
         // First collision pass
         for (uint32_t i{0}; i < thread_count; ++i) {
             thread_pool.addTask([this, i, slice_size]{
-                solveCollisionThreaded(2 * i, slice_size);
+                uint32_t const start{2 * i * slice_size};
+                uint32_t const end  {start + slice_size};
+                solveCollisionThreaded(start, end);
+            });
+        }
+        // Eventually process rest if the world is not divisible by the thread count
+        if (last_cell < grid.data.size()) {
+            thread_pool.addTask([this, last_cell]{
+                solveCollisionThreaded(last_cell, to<uint32_t>(grid.data.size()));
             });
         }
         thread_pool.waitForCompletion();
         // Second collision pass
         for (uint32_t i{0}; i < thread_count; ++i) {
             thread_pool.addTask([this, i, slice_size]{
-                solveCollisionThreaded(2 * i + 1, slice_size);
+                uint32_t const start{(2 * i + 1) * slice_size};
+                uint32_t const end  {start + slice_size};
+                solveCollisionThreaded(start, end);
             });
         }
         thread_pool.waitForCompletion();
