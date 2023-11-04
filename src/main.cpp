@@ -15,7 +15,7 @@ int main()
     WindowContextHandler app("Verlet-MultiThread", sf::Vector2u(window_width, window_height), sf::Style::Default);
     RenderContext& render_context = app.getRenderContext();
     // Initialize solver and renderer
-    
+
     tp::ThreadPool thread_pool(10);
     const IVec2 world_size{300, 300};
     PhysicSolver solver{world_size, thread_pool};
