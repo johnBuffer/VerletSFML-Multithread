@@ -41,7 +41,7 @@ int main()
     // Main loop
     const float dt = 1.0f / static_cast<float>(fps_cap);
     while (app.run()) {
-        if (solver.objects.size() < 8000 && emit) {
+        if (solver.objects.size() < 50000 && emit) {
             for (uint32_t i{20}; i--;) {
                 const auto id = solver.createObject({2.0f, 10.0f + 1.1f * i});
                 solver.objects[id].last_position.x -= 0.2f;
@@ -51,7 +51,7 @@ int main()
 
         sf::Clock update_clock;
         solver.update(dt);
-        std::cout << update_clock.getElapsedTime().asMilliseconds() << std::endl;
+        std::cout << update_clock.getElapsedTime().asMicroseconds() << std::endl;
 
         render_context.clear();
         renderer.render(render_context);
