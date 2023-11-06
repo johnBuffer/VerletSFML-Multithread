@@ -49,7 +49,9 @@ int main()
             }
         }
 
+        sf::Clock update_clock;
         solver.update(dt);
+        std::cout << update_clock.getElapsedTime().asMilliseconds() << std::endl;
 
         render_context.clear();
         renderer.render(render_context);
