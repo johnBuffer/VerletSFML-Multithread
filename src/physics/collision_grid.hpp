@@ -2,6 +2,7 @@
 #include <cstdint>
 #include "engine/common/vec.hpp"
 #include "engine/common/grid.hpp"
+#include "engine/common/utils.hpp"
 
 
 struct CollisionCell
@@ -10,35 +11,24 @@ struct CollisionCell
     static constexpr uint8_t max_cell_idx  = cell_capacity - 1;
 
     // Overlap workaround
-	uint32_t objects_count              = 0;
-    uint32_t objects[cell_capacity] = {};
+	uint32_t objects_count          = 0;
+    Vec2     objects[cell_capacity] = {};
 
 	CollisionCell() = default;
 
-	void addAtom(uint32_t id)
+	uint32_t addAtom(Vec2 position)
 	{
-        objects[objects_count] = id;
-        objects_count += objects_count < max_cell_idx;
+        if (objects_count == cell_capacity) {
+            return 255;
+        }
+        objects[objects_count] = position;
+        return objects_count++;
 	}
 
 	void clear()
 	{
 		objects_count = 0u;
 	}
-
-    void remove(uint32_t id)
-    {
-        for (uint32_t i{0}; i < objects_count; ++i) {
-            if (objects[i] == id) {
-                // Swap pop
-                objects[i] = objects[objects_count - 1];
-                --objects_count;
-                return;
-            }
-        }
-
-        //std::cout << "Problem" << std::endl;
-    }
 };
 
 struct CollisionGrid : public Grid<CollisionCell>
@@ -51,13 +41,23 @@ struct CollisionGrid : public Grid<CollisionCell>
 		: Grid<CollisionCell>(width, height)
 	{}
 
-	bool addAtom(uint32_t x, uint32_t y, uint32_t atom)
+    uint32_t getIndex(Vec2 pos)
+    {
+        return to<int32_t>(pos.x) * height + to<int32_t>(pos.y);
+    }
+
+	uint64_t addAtom(Vec2 position)
 	{
-		const uint32_t id = x * height + y;
 		// Add to grid
-		data[id].addAtom(atom);
-		return true;
+        uint64_t const cell_idx = getIndex(position);
+        uint64_t const data_idx = data[cell_idx].addAtom(position);
+        return cell_idx | (data_idx << 32);
 	}
+
+    Vec2 getPosition(Vec2 old, uint32_t idx)
+    {
+        return data[getIndex(old)].objects[idx];
+    }
 
 	void clear()
 	{

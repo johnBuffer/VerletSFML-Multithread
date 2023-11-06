@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 #include "collision_grid.hpp"
 #include "physic_object.hpp"
 #include "engine/common/utils.hpp"
@@ -27,44 +28,45 @@ struct PhysicSolver
     }
 
     // Checks if two atoms are colliding and if so create a new contact
-    void solveContact(uint32_t atom_1_idx, uint32_t atom_2_idx)
+    void solveContact(Vec2& pos_1, Vec2& pos_2)
     {
+        if (&pos_1 == &pos_2) {
+            return;
+        }
         constexpr float response_coef = 1.0f;
         constexpr float eps           = 0.0001f;
-        PhysicObject& obj_1 = objects.data[atom_1_idx];
-        PhysicObject& obj_2 = objects.data[atom_2_idx];
-        const Vec2 o2_o1  = obj_1.position - obj_2.position;
+        const Vec2 o2_o1  = pos_1 - pos_2;
         const float dist2 = o2_o1.x * o2_o1.x + o2_o1.y * o2_o1.y;
         if (dist2 < 1.0f && dist2 > eps) {
             const float dist          = sqrt(dist2);
             // Radius are all equal to 1.0f
             const float delta  = response_coef * 0.5f * (1.0f - dist);
             const Vec2 col_vec = (o2_o1 / dist) * delta;
-            obj_1.position += col_vec;
-            obj_2.position -= col_vec;
+            pos_1 += col_vec;
+            pos_2 -= col_vec;
         }
     }
 
-    void checkAtomCellCollisions(uint32_t atom_idx, const CollisionCell& c)
+    void checkAtomCellCollisions(Vec2& pos_1, CollisionCell& c)
     {
         for (uint32_t i{0}; i < c.objects_count; ++i) {
-            solveContact(atom_idx, c.objects[i]);
+            solveContact(pos_1, c.objects[i]);
         }
     }
 
-    void processCell(const CollisionCell& c, uint32_t index)
+    void processCell(CollisionCell& c, uint32_t index)
     {
         for (uint32_t i{0}; i < c.objects_count; ++i) {
-            const uint32_t atom_idx = c.objects[i];
-            checkAtomCellCollisions(atom_idx, grid.data[index - 1]);
-            checkAtomCellCollisions(atom_idx, grid.data[index]);
-            checkAtomCellCollisions(atom_idx, grid.data[index + 1]);
-            checkAtomCellCollisions(atom_idx, grid.data[index + grid.height - 1]);
-            checkAtomCellCollisions(atom_idx, grid.data[index + grid.height    ]);
-            checkAtomCellCollisions(atom_idx, grid.data[index + grid.height + 1]);
-            checkAtomCellCollisions(atom_idx, grid.data[index - grid.height - 1]);
-            checkAtomCellCollisions(atom_idx, grid.data[index - grid.height    ]);
-            checkAtomCellCollisions(atom_idx, grid.data[index - grid.height + 1]);
+            Vec2& position_1 = c.objects[i];
+            checkAtomCellCollisions(position_1, grid.data[index - 1]);
+            checkAtomCellCollisions(position_1, grid.data[index]);
+            checkAtomCellCollisions(position_1, grid.data[index + 1]);
+            checkAtomCellCollisions(position_1, grid.data[index + grid.height - 1]);
+            checkAtomCellCollisions(position_1, grid.data[index + grid.height    ]);
+            checkAtomCellCollisions(position_1, grid.data[index + grid.height + 1]);
+            checkAtomCellCollisions(position_1, grid.data[index - grid.height - 1]);
+            checkAtomCellCollisions(position_1, grid.data[index - grid.height    ]);
+            checkAtomCellCollisions(position_1, grid.data[index - grid.height + 1]);
         }
     }
 
@@ -138,13 +140,11 @@ struct PhysicSolver
     {
         grid.clear();
         // Safety border to avoid adding object outside the grid
-        uint32_t i{0};
-        for (const PhysicObject& obj : objects.data) {
+        for (PhysicObject& obj : objects.data) {
             if (obj.position.x > 1.0f && obj.position.x < world_size.x - 1.0f &&
                 obj.position.y > 1.0f && obj.position.y < world_size.y - 1.0f) {
-                grid.addAtom(to<int32_t>(obj.position.x), to<int32_t>(obj.position.y), i);
+                obj.cell_idx = grid.addAtom(obj.position);
             }
-            ++i;
         }
     }
 
@@ -153,6 +153,12 @@ struct PhysicSolver
         thread_pool.dispatch(to<uint32_t>(objects.size()), [&](uint32_t start, uint32_t end){
             for (uint32_t i{start}; i < end; ++i) {
                 PhysicObject& obj = objects.data[i];
+                // Fetch updated position
+                uint32_t const cell_idx = obj.cell_idx & 0xFFFFFFFF;
+                uint32_t const data_idx = obj.cell_idx >> 32;
+                if (data_idx != 255) {
+                    obj.position = grid.data[cell_idx].objects[data_idx];
+                }
                 // Add gravity
                 obj.acceleration += gravity;
                 // Apply Verlet integration

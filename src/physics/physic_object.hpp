@@ -10,6 +10,7 @@ struct PhysicObject
     Vec2 position      = {0.0f, 0.0f};
     Vec2 last_position = {0.0f, 0.0f};
     Vec2 acceleration  = {0.0f, 0.0f};
+    uint64_t cell_idx  = 255;
     sf::Color color;
 
     PhysicObject() = default;
