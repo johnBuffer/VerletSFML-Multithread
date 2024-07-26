@@ -30,7 +30,7 @@ struct PhysicObject
     {
         const Vec2 last_update_move = position - last_position;
 
-        const VELOCITY_DAMPING = 40.0f; // arbitrary, approximating air friction
+        const float VELOCITY_DAMPING = 40.0f; // arbitrary, approximating air friction
 
         const Vec2 new_position = position + last_update_move + (acceleration - last_update_move * VELOCITY_DAMPING) * (dt * dt);
         last_position           = position;
