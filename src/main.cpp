@@ -38,13 +38,15 @@ int main()
         app.setFramerateLimit(target_fps);
     });
 
+
+
     // Main loop
     const float dt = 1.0f / static_cast<float>(fps_cap);
     while (app.run()) {
-        if (solver.objects.size() < 80000 && emit) {
+        if (solver.objects.size() < 8000 && emit) {
             for (uint32_t i{20}; i--;) {
                 const auto id = solver.createObject({2.0f, 10.0f + 1.1f * i});
-                solver.objects[id].last_position.x -= 0.2f;
+                solver.objects[id].velocity = {20.0f, 0.0f};
                 solver.objects[id].color = ColorUtils::getRainbow(id * 0.0001f);
             }
         }

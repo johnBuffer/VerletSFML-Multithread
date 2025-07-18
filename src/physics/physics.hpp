@@ -1,10 +1,9 @@
 #pragma once
 #include "collision_grid.hpp"
-#include "physic_object.hpp"
-#include "engine/common/utils.hpp"
 #include "engine/common/index_vector.hpp"
+#include "engine/common/utils.hpp"
+#include "physics_object.hpp"
 #include "thread_pool/thread_pool.hpp"
-
 
 struct PhysicSolver
 {
@@ -33,15 +32,15 @@ struct PhysicSolver
         constexpr float eps           = 0.0001f;
         PhysicObject& obj_1 = objects.data[atom_1_idx];
         PhysicObject& obj_2 = objects.data[atom_2_idx];
-        const Vec2 o2_o1  = obj_1.position - obj_2.position;
+        const Vec2 o2_o1  = obj_1.position_candidate - obj_2.position_candidate;
         const float dist2 = o2_o1.x * o2_o1.x + o2_o1.y * o2_o1.y;
         if (dist2 < 1.0f && dist2 > eps) {
             const float dist          = sqrt(dist2);
             // Radius are all equal to 1.0f
             const float delta  = response_coef * 0.5f * (1.0f - dist);
             const Vec2 col_vec = (o2_o1 / dist) * delta;
-            obj_1.position += col_vec;
-            obj_2.position -= col_vec;
+            obj_1.position_candidate += col_vec;
+            obj_2.position_candidate -= col_vec;
         }
     }
 
@@ -123,14 +122,31 @@ struct PhysicSolver
         return objects.emplace_back(pos);
     }
 
-    void update(float dt)
+    void update(float const dt)
     {
         // Perform the sub steps
         const float sub_dt = dt / static_cast<float>(sub_steps);
         for (uint32_t i(sub_steps); i--;) {
+            applyGravity(sub_dt);
+            updateCandidatePositions(sub_dt);
+            applyBoundariesConstraints();
             addObjectsToGrid();
             solveCollisions();
-            updateObjects_multi(sub_dt);
+            updateObjects(sub_dt);
+        }
+    }
+
+    void applyGravity(float const dt)
+    {
+        for (auto& obj : objects) {
+            obj.velocity += gravity * dt;
+        }
+    }
+
+    void updateCandidatePositions(float const dt)
+    {
+        for (auto& obj : objects) {
+            obj.updateCandidatePosition(dt);
         }
     }
 
@@ -140,34 +156,41 @@ struct PhysicSolver
         // Safety border to avoid adding object outside the grid
         uint32_t i{0};
         for (const PhysicObject& obj : objects.data) {
-            if (obj.position.x > 1.0f && obj.position.x < world_size.x - 1.0f &&
-                obj.position.y > 1.0f && obj.position.y < world_size.y - 1.0f) {
-                grid.addAtom(to<int32_t>(obj.position.x), to<int32_t>(obj.position.y), i);
+            if (obj.position_candidate.x > 1.0f && obj.position_candidate.x < world_size.x - 1.0f &&
+                obj.position_candidate.y > 1.0f && obj.position_candidate.y < world_size.y - 1.0f) {
+                grid.addAtom(to<int32_t>(obj.position_candidate.x), to<int32_t>(obj.position_candidate.y), i);
             }
             ++i;
         }
     }
 
-    void updateObjects_multi(float dt)
+    void updateObjects(float const dt)
     {
         thread_pool.dispatch(to<uint32_t>(objects.size()), [&](uint32_t start, uint32_t end){
             for (uint32_t i{start}; i < end; ++i) {
                 PhysicObject& obj = objects.data[i];
-                // Add gravity
-                obj.acceleration += gravity;
                 // Apply Verlet integration
                 obj.update(dt);
+            }
+        });
+    }
+
+    void applyBoundariesConstraints()
+    {
+        thread_pool.dispatch(to<uint32_t>(objects.size()), [&](uint32_t start, uint32_t end){
+            for (uint32_t i{start}; i < end; ++i) {
+                PhysicObject& obj = objects.data[i];
                 // Apply map borders collisions
-                const float margin = 2.0f;
-                if (obj.position.x > world_size.x - margin) {
-                    obj.position.x = world_size.x - margin;
-                } else if (obj.position.x < margin) {
-                    obj.position.x = margin;
+                float constexpr margin = 2.0f;
+                if (obj.position_candidate.x > world_size.x - margin) {
+                    obj.position_candidate.x = world_size.x - margin;
+                } else if (obj.position_candidate.x < margin) {
+                    obj.position_candidate.x = margin;
                 }
-                if (obj.position.y > world_size.y - margin) {
-                    obj.position.y = world_size.y - margin;
-                } else if (obj.position.y < margin) {
-                    obj.position.y = margin;
+                if (obj.position_candidate.y > world_size.y - margin) {
+                    obj.position_candidate.y = world_size.y - margin;
+                } else if (obj.position_candidate.y < margin) {
+                    obj.position_candidate.y = margin;
                 }
             }
         });
