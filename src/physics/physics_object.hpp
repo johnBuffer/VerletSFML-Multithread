@@ -35,14 +35,6 @@ struct PhysicObject
 
     void update(float const dt)
     {
-        /*const Vec2 last_update_move = position - last_position;
-
-        const float VELOCITY_DAMPING = 40.0f; // arbitrary, approximating air friction
-
-        const Vec2 new_position = position + last_update_move + (acceleration - last_update_move * VELOCITY_DAMPING) * (dt * dt);
-        last_position           = position;
-        position                = new_position;*/
-
         velocity = (position_candidate - position) / dt;
         position = position_candidate;
         acceleration = {0.0f, 0.0f};
