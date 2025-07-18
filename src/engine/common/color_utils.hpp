@@ -9,21 +9,21 @@ struct ColorUtils
     template<typename T>
     static sf::Color createColor(T r, T g, T b)
     {
-        return { to<uint8_t>(r), to<uint8_t>(g), to<uint8_t>(b) };
+        return { static_cast<uint8_t>(r), static_cast<uint8_t>(g), static_cast<uint8_t>(b) };
     }
 
     template<typename TVec3>
     static sf::Color createColor(TVec3 vec)
     {
-        return { to<uint8_t>(vec.x), to<uint8_t>(vec.y), to<uint8_t>(vec.z) };
+        return { static_cast<uint8_t>(vec.x), static_cast<uint8_t>(vec.y), static_cast<uint8_t>(vec.z) };
     }
 
-    static sf::Color interpolate(sf::Color color_1, sf::Color color_2, float ratio)
+    static sf::Color interpolate(sf::Color const color_1, sf::Color const color_2, float const ratio)
     {
         return ColorUtils::createColor(
-            to<float>(color_1.r) + ratio * to<float>(color_2.r - color_1.r),
-            to<float>(color_1.g) + ratio * to<float>(color_2.g - color_1.g),
-            to<float>(color_1.b) + ratio * to<float>(color_2.b - color_1.b)
+            static_cast<float>(color_1.r) + ratio * static_cast<float>(color_2.r - color_1.r),
+            static_cast<float>(color_1.g) + ratio * static_cast<float>(color_2.g - color_1.g),
+            static_cast<float>(color_1.b) + ratio * static_cast<float>(color_2.b - color_1.b)
         );
     }
 

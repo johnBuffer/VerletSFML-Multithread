@@ -43,12 +43,13 @@ int main()
     // Main loop
     const float dt = 1.0f / static_cast<float>(fps_cap);
     while (app.run()) {
-        if (solver.objects.size() < 8000 && emit && spawn_clock.getElapsedTime().asMilliseconds() > 10.0f) {
+        if (solver.objects.size() < 8000 && emit) {
             spawn_clock.restart();
-            float const rand_offset = rand()%10 * 0.1f;
+            //float const rand_offset = rand()%10 * 0.1f;
             for (uint32_t i{20}; i--;) {
-                const auto id = solver.createObject({120.0f + 1.1f * i + rand_offset, 10.0f});
-                solver.objects[id].velocity = {0.0f, 60.0f};
+                //const auto id = solver.createObject({120.0f + 1.1f * i + rand_offset, 10.0f});
+                const auto id = solver.createObject({2.0f, 10.0f + 1.1f * i});
+                solver.objects[id].velocity = {120.0f, 0.0f};
                 solver.objects[id].color = ColorUtils::getRainbow(id * 0.0001f);
             }
         }

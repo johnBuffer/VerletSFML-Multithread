@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 #include "collision_grid.hpp"
 #include "engine/common/index_vector.hpp"
 #include "engine/common/utils.hpp"
@@ -18,7 +19,7 @@ struct PhysicSolver
 
     PhysicSolver(IVec2 size, tp::ThreadPool& tp)
         : grid{size.x, size.y}
-        , world_size{to<float>(size.x), to<float>(size.y)}
+        , world_size{static_cast<float>(size.x), static_cast<float>(size.y)}
         , sub_steps{8}
         , thread_pool{tp}
     {
@@ -38,10 +39,26 @@ struct PhysicSolver
             const float dist          = sqrt(dist2);
             // Radius are all equal to 1.0f
             const float delta  = response_coef * 0.5f * (1.0f - dist);
-            const Vec2 col_vec = (o2_o1 / dist) * delta;
-            obj_1.position_candidate += col_vec;
-            obj_2.position_candidate -= col_vec;
+            const Vec2 col_vec = (o2_o1 / dist);
+            const Vec2 correction = col_vec * delta;
+            obj_1.position_candidate += correction;
+            obj_2.position_candidate -= correction;
+
+            applyFriction(obj_1, obj_2, col_vec);
         }
+    }
+
+    static void applyFriction(PhysicObject& obj_1, PhysicObject& obj_2, Vec2 const n)
+    {
+        Vec2 const move_1 = obj_1.position_candidate - obj_1.position;
+        Vec2 const move_2 = obj_2.position_candidate - obj_2.position;
+        Vec2 const rel_displacement = move_1 - move_2;
+
+        Vec2 const tangent = normal(n);
+        Vec2 const tangential = tangent * dot(tangent, rel_displacement);
+        float constexpr friction_coef{0.4f};
+        obj_1.position_candidate -= 0.5f * tangential * friction_coef;
+        obj_2.position_candidate += 0.5f * tangential * friction_coef;
     }
 
     void checkAtomCellCollisions(uint32_t atom_idx, const CollisionCell& c)
@@ -95,7 +112,7 @@ struct PhysicSolver
         // Eventually process rest if the world is not divisible by the thread count
         if (last_cell < grid.data.size()) {
             thread_pool.addTask([this, last_cell]{
-                solveCollisionThreaded(last_cell, to<uint32_t>(grid.data.size()));
+                solveCollisionThreaded(last_cell, static_cast<uint32_t>(grid.data.size()));
             });
         }
         thread_pool.waitForCompletion();
@@ -158,7 +175,7 @@ struct PhysicSolver
         for (const PhysicObject& obj : objects.data) {
             if (obj.position_candidate.x > 1.0f && obj.position_candidate.x < world_size.x - 1.0f &&
                 obj.position_candidate.y > 1.0f && obj.position_candidate.y < world_size.y - 1.0f) {
-                grid.addAtom(to<int32_t>(obj.position_candidate.x), to<int32_t>(obj.position_candidate.y), i);
+                grid.addAtom(static_cast<int32_t>(obj.position_candidate.x), static_cast<int32_t>(obj.position_candidate.y), i);
             }
             ++i;
         }
@@ -166,7 +183,7 @@ struct PhysicSolver
 
     void updateObjects(float const dt)
     {
-        thread_pool.dispatch(to<uint32_t>(objects.size()), [&](uint32_t start, uint32_t end){
+        thread_pool.dispatch(static_cast<uint32_t>(objects.size()), [&](uint32_t start, uint32_t end){
             for (uint32_t i{start}; i < end; ++i) {
                 PhysicObject& obj = objects.data[i];
                 // Apply Verlet integration
@@ -177,7 +194,7 @@ struct PhysicSolver
 
     void applyBoundariesConstraints()
     {
-        thread_pool.dispatch(to<uint32_t>(objects.size()), [&](uint32_t start, uint32_t end){
+        thread_pool.dispatch(static_cast<uint32_t>(objects.size()), [&](uint32_t start, uint32_t end){
             for (uint32_t i{start}; i < end; ++i) {
                 PhysicObject& obj = objects.data[i];
                 // Apply map borders collisions
@@ -189,6 +206,8 @@ struct PhysicSolver
                 }
                 if (obj.position_candidate.y > world_size.y - margin) {
                     obj.position_candidate.y = world_size.y - margin;
+                    float x_move = obj.position_candidate.x - obj.position.x;
+                    obj.position_candidate.x -= x_move * 0.5f;
                 } else if (obj.position_candidate.y < margin) {
                     obj.position_candidate.y = margin;
                 }

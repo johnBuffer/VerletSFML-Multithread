@@ -48,7 +48,7 @@ void Renderer::updateParticlesVA()
 
     const float texture_size = 1024.0f;
     const float radius       = 0.5f;
-    thread_pool.dispatch(to<uint32_t>(solver.objects.size()), [&](uint32_t start, uint32_t end) {
+    thread_pool.dispatch(static_cast<uint32_t>(solver.objects.size()), [&](uint32_t start, uint32_t end) {
         for (uint32_t i{start}; i < end; ++i) {
             const PhysicObject& object = solver.objects.data[i];
             const uint32_t idx = i << 2;
