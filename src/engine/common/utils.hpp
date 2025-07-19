@@ -25,6 +25,12 @@ float dot(TVec const& a, TVec const& b)
     return a.x * b.x + a.y * b.y;
 }
 
+template<typename TVec>
+float length(TVec const& v)
+{
+    return std::sqrt(dot(v, v));
+}
+
 
 template<typename T>
 static std::string toString(T value)

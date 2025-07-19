@@ -38,27 +38,31 @@ struct PhysicSolver
         if (dist2 < 1.0f && dist2 > eps) {
             const float dist          = sqrt(dist2);
             // Radius are all equal to 1.0f
-            const float delta  = response_coef * 0.5f * (1.0f - dist);
+            float const depth  = (1.0f - dist);
+            const float delta  = response_coef * 0.5f * depth;
             const Vec2 col_vec = (o2_o1 / dist);
             const Vec2 correction = col_vec * delta;
             obj_1.position_candidate += correction;
             obj_2.position_candidate -= correction;
 
-            applyFriction(obj_1, obj_2, col_vec);
+            applyFriction(obj_1, obj_2, col_vec, depth);
         }
     }
 
-    static void applyFriction(PhysicObject& obj_1, PhysicObject& obj_2, Vec2 const n)
+    static void applyFriction(PhysicObject& obj_1, PhysicObject& obj_2, Vec2 const n, float const depth)
     {
+        float constexpr uk{0.74f};
+
         Vec2 const move_1 = obj_1.position_candidate - obj_1.position;
         Vec2 const move_2 = obj_2.position_candidate - obj_2.position;
         Vec2 const rel_displacement = move_1 - move_2;
 
         Vec2 const tangent = normal(n);
         Vec2 const tangential = tangent * dot(tangent, rel_displacement);
-        float constexpr friction_coef{0.4f};
-        obj_1.position_candidate -= 0.5f * tangential * friction_coef;
-        obj_2.position_candidate += 0.5f * tangential * friction_coef;
+        float const speed_coef = std::min((uk * depth) / length(tangential), 1.0f);
+        Vec2 const correction =  tangential * (speed_coef * 0.5f);
+        obj_1.position_candidate -= correction;
+        obj_2.position_candidate += correction;
     }
 
     void checkAtomCellCollisions(uint32_t atom_idx, const CollisionCell& c)
