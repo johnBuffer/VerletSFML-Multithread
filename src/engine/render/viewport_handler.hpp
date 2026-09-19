@@ -26,7 +26,7 @@ struct ViewportHandler
             const float z = zoom;
             transform = sf::Transform::Identity;
             transform.translate(center);
-            transform.scale(z, z);
+            transform.scale({z, z});
             transform.translate(-offset);
         }
 

@@ -30,19 +30,19 @@ public:
     
     void registerCallbacks(sfev::EventManager& event_manager)
     {
-        event_manager.addEventCallback(sf::Event::Closed, [&](sfev::CstEv) { m_window.close(); });
-        event_manager.addKeyPressedCallback(sf::Keyboard::Escape, [&](sfev::CstEv) { m_window.close(); });
-        event_manager.addMousePressedCallback(sf::Mouse::Left, [&](sfev::CstEv) {
+        event_manager.addEventCallback<sf::Event::Closed>([&](sfev::CstEv) { m_window.close(); });
+        event_manager.addKeyPressedCallback(sf::Keyboard::Key::Escape, [&](sfev::CstEv) { m_window.close(); });
+        event_manager.addMousePressedCallback(sf::Mouse::Button::Left, [&](sfev::CstEv) {
             m_viewport_handler.click(event_manager.getFloatMousePosition());
         });
-        event_manager.addMouseReleasedCallback(sf::Mouse::Left, [&](sfev::CstEv) {
+        event_manager.addMouseReleasedCallback(sf::Mouse::Button::Left, [&](sfev::CstEv) {
             m_viewport_handler.unclick();
         });
-        event_manager.addEventCallback(sf::Event::MouseMoved, [&](sfev::CstEv) {
+        event_manager.addEventCallback<sf::Event::MouseMoved>([&](sfev::CstEv) {
             m_viewport_handler.setMousePosition(event_manager.getFloatMousePosition());
         });
-        event_manager.addEventCallback(sf::Event::MouseWheelScrolled, [&](sfev::CstEv e) {
-            m_viewport_handler.wheelZoom(e.mouseWheelScroll.delta);
+        event_manager.addEventCallback<sf::Event::MouseWheelScrolled>([&](sfev::CstEv e) {
+            m_viewport_handler.wheelZoom(e.getIf<sf::Event::MouseWheelScrolled>()->delta);
         });
     }
     
@@ -80,8 +80,8 @@ class WindowContextHandler
 public:
     WindowContextHandler(const std::string& window_name,
                          sf::Vector2u window_size,
-                         int32_t window_style = sf::Style::Default)
-        : m_window(sf::VideoMode(window_size.x, window_size.y), window_name, window_style)
+                         std::uint32_t window_style = sf::Style::Default)
+        : m_window(sf::VideoMode(window_size), window_name, window_style)
         , m_event_manager(m_window, true)
         , m_render_context(m_window)
     {

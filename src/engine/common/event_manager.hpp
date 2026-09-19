@@ -1,8 +1,12 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
-#include <unordered_map>
 #include <functional>
+#include <optional>
+#include <type_traits>
+#include <typeindex>
+#include <unordered_map>
+
 
 namespace sfev
 {
@@ -55,24 +59,25 @@ class EventMap
 {
 public:
     EventMap(bool use_builtin_helpers = true)
-        : m_key_pressed_manager([](const sf::Event& event) {return event.key.code; })
-        , m_key_released_manager([](const sf::Event& event) {return event.key.code; })
-        , m_mouse_pressed_manager([](const sf::Event& event) {return event.mouseButton.button; })
-        , m_mouse_released_manager([](const sf::Event& event) {return event.mouseButton.button; })
+        : m_key_pressed_manager([](const sf::Event& event) { return event.getIf<sf::Event::KeyPressed>()->code; })
+        , m_key_released_manager([](const sf::Event& event) { return event.getIf<sf::Event::KeyReleased>()->code; })
+        , m_mouse_pressed_manager([](const sf::Event& event) { return event.getIf<sf::Event::MouseButtonPressed>()->button; })
+        , m_mouse_released_manager([](const sf::Event& event) { return event.getIf<sf::Event::MouseButtonReleased>()->button; })
     {
         if (use_builtin_helpers) {
             // Register key events built in callbacks
-            this->addEventCallback(sf::Event::EventType::KeyPressed, [&](const sf::Event& event) {m_key_pressed_manager.processEvent(event); });
-            this->addEventCallback(sf::Event::EventType::KeyReleased, [&](const sf::Event& event) {m_key_released_manager.processEvent(event); });
-            this->addEventCallback(sf::Event::EventType::MouseButtonPressed, [&](const sf::Event& event) {m_mouse_pressed_manager.processEvent(event); });
-            this->addEventCallback(sf::Event::EventType::MouseButtonReleased, [&](const sf::Event& event) {m_mouse_released_manager.processEvent(event); });
+            this->addEventCallback<sf::Event::KeyPressed>([&](const sf::Event& event) { m_key_pressed_manager.processEvent(event); });
+            this->addEventCallback<sf::Event::KeyReleased>([&](const sf::Event& event) { m_key_released_manager.processEvent(event); });
+            this->addEventCallback<sf::Event::MouseButtonPressed>([&](const sf::Event& event) { m_mouse_pressed_manager.processEvent(event); });
+            this->addEventCallback<sf::Event::MouseButtonReleased>([&](const sf::Event& event) { m_mouse_released_manager.processEvent(event); });
         }
     }
     
-    // Attaches new callback to an event
-    void addEventCallback(sf::Event::EventType type, EventCallback callback)
+    // Attaches new callback to an event subtype
+    template<typename T>
+    void addEventCallback(EventCallback callback)
     {
-        m_events_callmap[type] = callback;
+        m_events_callmap[std::type_index(typeid(T))] = std::move(callback);
     }
     
     // Adds a key pressed callback
@@ -102,24 +107,25 @@ public:
     // Runs the callback associated with an event
     void executeCallback(const sf::Event& e, EventCallback fallback = nullptr) const
     {
-        auto it(m_events_callmap.find(e.type));
-        if (it != m_events_callmap.end()) {
-            // Call its associated callback
-            (it->second)(e);
-        } else if (fallback) {
+        bool handled = false;
+        e.visit([&](const auto& data) {
+            using T = std::decay_t<decltype(data)>;
+            auto it(m_events_callmap.find(std::type_index(typeid(T))));
+            if (it != m_events_callmap.end()) {
+                (it->second)(e);
+                handled = true;
+            }
+        });
+        if (!handled && fallback) {
             fallback(e);
         }
     }
     
     // Removes a callback
-    void removeCallback(sf::Event::EventType type)
+    template<typename T>
+    void removeCallback()
     {
-        // If event type is registred
-        auto it(m_events_callmap.find(type));
-        if (it != m_events_callmap.end()) {
-            // Remove its associated callback
-            m_events_callmap.erase(it);
-        }
+        m_events_callmap.erase(std::type_index(typeid(T)));
     }
     
 private:
@@ -127,7 +133,7 @@ private:
     SubTypeManager<sf::Keyboard::Key> m_key_released_manager;
     SubTypeManager<sf::Mouse::Button> m_mouse_pressed_manager;
     SubTypeManager<sf::Mouse::Button> m_mouse_released_manager;
-    EventCallbackMap<sf::Event::EventType> m_events_callmap;
+    std::unordered_map<std::type_index, EventCallback> m_events_callmap;
 };
 
 
@@ -147,23 +153,23 @@ public:
     // Calls events' attached callbacks
     void processEvents(EventCallback fallback = nullptr) const
     {
-        // Iterate over events
-        sf::Event event;
-        while (m_window.pollEvent(event)) {
-            m_event_map.executeCallback(event, fallback);
+        while (const std::optional event = m_window.pollEvent()) {
+            m_event_map.executeCallback(*event, fallback);
         }
     }
     
-    // Attaches new callback to an event
-    void addEventCallback(sf::Event::EventType type, EventCallback callback)
+    // Attaches new callback to an event subtype
+    template<typename T>
+    void addEventCallback(EventCallback callback)
     {
-        m_event_map.addEventCallback(type, callback);
+        m_event_map.addEventCallback<T>(std::move(callback));
     }
 
     // Removes a callback
-    void removeCallback(sf::Event::EventType type)
+    template<typename T>
+    void removeCallback()
     {
-        m_event_map.removeCallback(type);
+        m_event_map.removeCallback<T>();
     }
 
     // Adds a key pressed callback
@@ -198,7 +204,7 @@ public:
     sf::Vector2f getFloatMousePosition() const
     {
         const sf::Vector2i mouse_position = sf::Mouse::getPosition(m_window);
-        return { static_cast<float>(mouse_position.x), static_cast<float>(mouse_position.y) };
+        return {static_cast<float>(mouse_position.x), static_cast<float>(mouse_position.y)};
     }
 
     sf::Vector2i getMousePosition() const

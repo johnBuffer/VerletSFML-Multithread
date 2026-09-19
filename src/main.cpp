@@ -10,8 +10,8 @@
 
 int main()
 {
-    const uint32_t window_width  = 1920;
-    const uint32_t window_height = 1080;
+    const uint32_t window_width  = 1600;
+    const uint32_t window_height = 900;
     WindowContextHandler app("Verlet-MultiThread", sf::Vector2u(window_width, window_height), sf::Style::Default);
     RenderContext& render_context = app.getRenderContext();
     // Initialize solver and renderer
@@ -27,13 +27,13 @@ int main()
     render_context.setFocus({world_size.x * 0.5f, world_size.y * 0.5f});
 
     bool emit = true;
-    app.getEventManager().addKeyPressedCallback(sf::Keyboard::Space, [&](sfev::CstEv) {
+    app.getEventManager().addKeyPressedCallback(sf::Keyboard::Key::Space, [&](sfev::CstEv) {
         emit = !emit;
     });
 
     constexpr uint32_t fps_cap = 60;
     int32_t target_fps = fps_cap;
-    app.getEventManager().addKeyPressedCallback(sf::Keyboard::S, [&](sfev::CstEv) {
+    app.getEventManager().addKeyPressedCallback(sf::Keyboard::Key::S, [&](sfev::CstEv) {
         target_fps = target_fps ? 0 : fps_cap;
         app.setFramerateLimit(target_fps);
     });
