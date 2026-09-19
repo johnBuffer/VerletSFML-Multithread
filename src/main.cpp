@@ -1,6 +1,8 @@
-#include <iostream>
+#include <iomanip>
+#include <sstream>
 
 #include "engine/window_context_handler.hpp"
+#include "engine/common/average_timer.hpp"
 #include "engine/common/color_utils.hpp"
 
 #include "physics/physics.hpp"
@@ -16,7 +18,7 @@ int main()
     RenderContext& render_context = app.getRenderContext();
     // Initialize solver and renderer
 
-    tp::ThreadPool thread_pool(10);
+    tp::ThreadPool thread_pool(15);
     const IVec2 world_size{300, 300};
     PhysicSolver solver{world_size, thread_pool};
     Renderer renderer(solver, thread_pool);
@@ -40,8 +42,18 @@ int main()
 
     // Main loop
     const float dt = 1.0f / static_cast<float>(fps_cap);
+    AverageTimer physics_timer{fps_cap};
+    AverageTimer render_timer{fps_cap};
+
+    const sf::Font font{"res/roboto_regular.ttf"};
+    sf::Text hud_text{font, "", 20};
+    hud_text.setFillColor(sf::Color::White);
+    hud_text.setOutlineColor(sf::Color::Black);
+    hud_text.setOutlineThickness(1.0f);
+    hud_text.setPosition({20.0f, 20.0f});
+
     while (app.run()) {
-        if (solver.objects.size() < 80000 && emit) {
+        if (solver.objects.size() < 100000 && emit) {
             for (uint32_t i{20}; i--;) {
                 const auto id = solver.createObject({2.0f, 10.0f + 1.1f * i});
                 solver.objects[id].last_position.x -= 0.2f;
@@ -49,10 +61,27 @@ int main()
             }
         }
 
+        physics_timer.start();
         solver.update(dt);
+        physics_timer.stop();
 
+        render_timer.start();
         render_context.clear();
         renderer.render(render_context);
+        render_timer.stop();
+
+        const float physics_ms = physics_timer.get();
+        const float render_ms  = render_timer.get();
+        const float frame_ms   = physics_ms + render_ms;
+        std::ostringstream hud;
+        hud << std::fixed << std::setprecision(2)
+            << "Physics: " << physics_ms << " ms\n"
+            << "Render:  " << render_ms << " ms\n"
+            << "Frame:   " << frame_ms << " ms\n"
+            << "Objects: " << solver.objects.size();
+        hud_text.setString(hud.str());
+        render_context.drawDirect(hud_text);
+
         render_context.display();
     }
 
