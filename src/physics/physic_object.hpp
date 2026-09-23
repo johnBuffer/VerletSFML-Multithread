@@ -20,17 +20,17 @@ struct PhysicObject
         , last_position(position_)
     {}
 
-    void setPosition(Vec2 pos)
+    void setPosition(Vec2 const pos)
     {
         position      = pos;
         last_position = pos;
     }
 
-    void update(float dt)
+    void update(float const dt)
     {
         const Vec2 last_update_move = position - last_position;
 
-        const float VELOCITY_DAMPING = 40.0f; // arbitrary, approximating air friction
+        const float VELOCITY_DAMPING = 0.0f; // arbitrary, approximating air friction
 
         const Vec2 new_position = position + last_update_move + (acceleration - last_update_move * VELOCITY_DAMPING) * (dt * dt);
         last_position           = position;
@@ -43,7 +43,7 @@ struct PhysicObject
         last_position = position;
     }
 
-    void slowdown(float ratio)
+    void slowdown(float const ratio)
     {
         last_position = last_position + ratio * (position - last_position);
     }
@@ -60,12 +60,12 @@ struct PhysicObject
         return position - last_position;
     }
 
-    void addVelocity(Vec2 v)
+    void addVelocity(Vec2 const v)
     {
         last_position -= v;
     }
 
-    void setPositionSameSpeed(Vec2 new_position)
+    void setPositionSameSpeed(Vec2 const new_position)
     {
         const Vec2 to_last = last_position - position;
         position           = new_position;

@@ -27,9 +27,9 @@ struct PhysicSolver
     }
 
     // Checks if two atoms are colliding and if so create a new contact
-    void solveContact(uint32_t atom_1_idx, uint32_t atom_2_idx)
+    void solveContact(uint32_t const atom_1_idx, uint32_t const atom_2_idx)
     {
-        constexpr float response_coef = 1.0f;
+        constexpr float response_coef = 0.75f;
         constexpr float eps           = 0.0001f;
         PhysicObject& obj_1 = objects.data[atom_1_idx];
         PhysicObject& obj_2 = objects.data[atom_2_idx];
@@ -45,30 +45,35 @@ struct PhysicSolver
         }
     }
 
-    void checkAtomCellCollisions(uint32_t atom_idx, const CollisionCell& c)
+    void checkAtomCellCollisions(uint32_t const atom_idx, const CollisionCell& c)
     {
         for (uint32_t i{0}; i < c.objects_count; ++i) {
             solveContact(atom_idx, c.objects[i]);
         }
     }
 
-    void processCell(const CollisionCell& c, uint32_t index)
+    void processCell(const CollisionCell& c, uint32_t const index)
     {
         for (uint32_t i{0}; i < c.objects_count; ++i) {
             const uint32_t atom_idx = c.objects[i];
-            checkAtomCellCollisions(atom_idx, grid.data[index - 1]);
-            checkAtomCellCollisions(atom_idx, grid.data[index]);
+            for (uint32_t j{i + 1}; j < c.objects_count; ++j) {
+                solveContact(atom_idx, c.objects[j]);
+            }
             checkAtomCellCollisions(atom_idx, grid.data[index + 1]);
             checkAtomCellCollisions(atom_idx, grid.data[index + grid.height - 1]);
             checkAtomCellCollisions(atom_idx, grid.data[index + grid.height    ]);
             checkAtomCellCollisions(atom_idx, grid.data[index + grid.height + 1]);
-            checkAtomCellCollisions(atom_idx, grid.data[index - grid.height - 1]);
-            checkAtomCellCollisions(atom_idx, grid.data[index - grid.height    ]);
-            checkAtomCellCollisions(atom_idx, grid.data[index - grid.height + 1]);
+
+            // Double checks
+            // checkAtomCellCollisions(atom_idx, grid.data[index - 1]);
+            // checkAtomCellCollisions(atom_idx, grid.data[index]);
+            // checkAtomCellCollisions(atom_idx, grid.data[index - grid.height - 1]);
+            // checkAtomCellCollisions(atom_idx, grid.data[index - grid.height    ]);
+            // checkAtomCellCollisions(atom_idx, grid.data[index - grid.height + 1]);
         }
     }
 
-    void solveCollisionThreaded(uint32_t start, uint32_t end)
+    void solveCollisionThreaded(uint32_t const start, uint32_t const end)
     {
         for (uint32_t idx{start}; idx < end; ++idx) {
             processCell(grid.data[idx], idx);
@@ -123,7 +128,7 @@ struct PhysicSolver
         return objects.emplace_back(pos);
     }
 
-    void update(float dt)
+    void update(float const dt)
     {
         // Perform the sub steps
         const float sub_dt = dt / static_cast<float>(sub_steps);
@@ -148,9 +153,9 @@ struct PhysicSolver
         }
     }
 
-    void updateObjects_multi(float dt)
+    void updateObjects_multi(float const dt)
     {
-        thread_pool.dispatch(to<uint32_t>(objects.size()), [&](uint32_t start, uint32_t end){
+        thread_pool.dispatch(to<uint32_t>(objects.size()), [&](uint32_t const start, uint32_t const end){
             for (uint32_t i{start}; i < end; ++i) {
                 PhysicObject& obj = objects.data[i];
                 // Add gravity
@@ -158,7 +163,7 @@ struct PhysicSolver
                 // Apply Verlet integration
                 obj.update(dt);
                 // Apply map borders collisions
-                const float margin = 2.0f;
+                constexpr float margin = 2.0f;
                 if (obj.position.x > world_size.x - margin) {
                     obj.position.x = world_size.x - margin;
                 } else if (obj.position.x < margin) {

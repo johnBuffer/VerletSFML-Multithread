@@ -28,9 +28,34 @@ int main()
     render_context.setZoom(zoom);
     render_context.setFocus({world_size.x * 0.5f, world_size.y * 0.5f});
 
+    std::vector<sf::Color> colors;
+
     bool emit = true;
     app.getEventManager().addKeyPressedCallback(sf::Keyboard::Key::Space, [&](sfev::CstEv) {
         emit = !emit;
+    });
+
+    app.getEventManager().addKeyPressedCallback(sf::Keyboard::Key::L, [&](sfev::CstEv) {
+        sf::Image image;
+        image.loadFromFile("res/chicken.png");
+        Vec2 const image_size_f{image.getSize()};
+        Vec2 const world_size_f{world_size};
+        Vec2 const scale = image_size_f.componentWiseDiv(world_size_f);
+        colors.clear();
+        colors.reserve(solver.objects.size());
+        for (auto& o : solver.objects) {
+            Vec2 const pxl_f = o.position.componentWiseMul(scale);
+            sf::Vector2u const pxl{
+                static_cast<uint32_t>(std::clamp(pxl_f.x, 0.0f, image_size_f.x)),
+                static_cast<uint32_t>(std::clamp(pxl_f.y, 0.0f, image_size_f.y))
+            };
+            o.color = image.getPixel(pxl);
+            colors.push_back(o.color);
+        }
+    });
+
+    app.getEventManager().addKeyPressedCallback(sf::Keyboard::Key::R, [&](sfev::CstEv) {
+        solver.objects.clear();
     });
 
     constexpr uint32_t fps_cap = 60;
@@ -56,8 +81,13 @@ int main()
         if (solver.objects.size() < 100000 && emit) {
             for (uint32_t i{20}; i--;) {
                 const auto id = solver.createObject({2.0f, 10.0f + 1.1f * i});
-                solver.objects[id].last_position.x -= 0.2f;
-                solver.objects[id].color = ColorUtils::getRainbow(id * 0.0001f);
+                solver.objects[id].last_position.x -= 0.13f;
+                uint64_t const idx = solver.objects.size();
+                if (idx < colors.size()) {
+                    solver.objects[id].color = colors[idx - 1];
+                } else {
+                    solver.objects[id].color = ColorUtils::getRainbow(id * 0.0001f);
+                }
             }
         }
 
