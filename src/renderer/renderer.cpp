@@ -58,10 +58,10 @@ void Renderer::updateParticlesVA()
         for (uint32_t i{start}; i < end; ++i) {
             const PhysicObject& object = solver.objects.data[i];
             const uint32_t idx = i * 6;
-            const Vec2 p0 = object.position + Vec2{-radius, -radius};
-            const Vec2 p1 = object.position + Vec2{ radius, -radius};
-            const Vec2 p2 = object.position + Vec2{ radius,  radius};
-            const Vec2 p3 = object.position + Vec2{-radius,  radius};
+            const Vec2f p0 = object.position + Vec2f{-radius, -radius};
+            const Vec2f p1 = object.position + Vec2f{ radius, -radius};
+            const Vec2f p2 = object.position + Vec2f{ radius,  radius};
+            const Vec2f p3 = object.position + Vec2f{-radius,  radius};
             const sf::Vector2f t0{0.0f, 0.0f};
             const sf::Vector2f t1{texture_size, 0.0f};
             const sf::Vector2f t2{texture_size, texture_size};

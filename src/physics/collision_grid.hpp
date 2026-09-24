@@ -26,7 +26,7 @@ struct CollisionCell
 		objects_count = 0u;
 	}
 
-    void remove(uint32_t id)
+    void remove(uint32_t const id)
     {
         for (uint32_t i{0}; i < objects_count; ++i) {
             if (objects[i] == id) {
@@ -36,27 +36,29 @@ struct CollisionCell
                 return;
             }
         }
-
-        //std::cout << "Problem" << std::endl;
     }
 };
 
 struct CollisionGrid : public Grid<CollisionCell>
 {
-	CollisionGrid()
-		: Grid<CollisionCell>()
+	CollisionGrid() = default;
+
+	CollisionGrid(int32_t const width, int32_t const height)
+		: Grid{width, height}
 	{}
 
-	CollisionGrid(int32_t width, int32_t height)
-		: Grid<CollisionCell>(width, height)
-	{}
-
-	bool addAtom(uint32_t x, uint32_t y, uint32_t atom)
+	bool addAtom(uint32_t const x, uint32_t const y, uint32_t const atom)
 	{
 		const uint32_t id = x * height + y;
 		// Add to grid
 		data[id].addAtom(atom);
 		return true;
+	}
+
+	void moveAtom(int32_t const obj_id, int32_t const from_idx, int32_t const to_idx)
+	{
+		data[from_idx].remove(obj_id);
+		data[to_idx].addAtom(obj_id);
 	}
 
 	void clear()

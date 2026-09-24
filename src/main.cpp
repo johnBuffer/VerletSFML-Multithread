@@ -19,7 +19,7 @@ int main()
     // Initialize solver and renderer
 
     tp::ThreadPool thread_pool(15);
-    const IVec2 world_size{300, 300};
+    const Vec2i world_size{300, 300};
     PhysicSolver solver{world_size, thread_pool};
     Renderer renderer(solver, thread_pool);
 
@@ -38,13 +38,13 @@ int main()
     app.getEventManager().addKeyPressedCallback(sf::Keyboard::Key::L, [&](sfev::CstEv) {
         sf::Image image;
         image.loadFromFile("res/chicken.png");
-        Vec2 const image_size_f{image.getSize()};
-        Vec2 const world_size_f{world_size};
-        Vec2 const scale = image_size_f.componentWiseDiv(world_size_f);
+        Vec2f const image_size_f{image.getSize()};
+        Vec2f const world_size_f{world_size};
+        Vec2f const scale = image_size_f.componentWiseDiv(world_size_f);
         colors.clear();
         colors.reserve(solver.objects.size());
         for (auto& o : solver.objects) {
-            Vec2 const pxl_f = o.position.componentWiseMul(scale);
+            Vec2f const pxl_f = o.position.componentWiseMul(scale);
             sf::Vector2u const pxl{
                 static_cast<uint32_t>(std::clamp(pxl_f.x, 0.0f, image_size_f.x)),
                 static_cast<uint32_t>(std::clamp(pxl_f.y, 0.0f, image_size_f.y))
@@ -56,6 +56,7 @@ int main()
 
     app.getEventManager().addKeyPressedCallback(sf::Keyboard::Key::R, [&](sfev::CstEv) {
         solver.objects.clear();
+        solver.grid.clear();
     });
 
     constexpr uint32_t fps_cap = 60;

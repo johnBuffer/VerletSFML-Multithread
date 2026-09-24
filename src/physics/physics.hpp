@@ -10,14 +10,14 @@ struct PhysicSolver
 {
     CIVector<PhysicObject> objects;
     CollisionGrid          grid;
-    Vec2                   world_size;
-    Vec2                   gravity = {0.0f, 20.0f};
+    Vec2f                  world_size;
+    Vec2f                  gravity{0.0f, 20.0f};
 
     // Simulation solving pass count
     uint32_t        sub_steps;
     tp::ThreadPool& thread_pool;
 
-    PhysicSolver(IVec2 size, tp::ThreadPool& tp)
+    PhysicSolver(Vec2i const size, tp::ThreadPool& tp)
         : grid{size.x, size.y}
         , world_size{to<float>(size.x), to<float>(size.y)}
         , sub_steps{8}
@@ -29,17 +29,17 @@ struct PhysicSolver
     // Checks if two atoms are colliding and if so create a new contact
     void solveContact(uint32_t const atom_1_idx, uint32_t const atom_2_idx)
     {
-        constexpr float response_coef = 0.75f;
+        constexpr float response_coef = 0.95f;
         constexpr float eps           = 0.0001f;
         PhysicObject& obj_1 = objects.data[atom_1_idx];
         PhysicObject& obj_2 = objects.data[atom_2_idx];
-        const Vec2 o2_o1  = obj_1.position - obj_2.position;
+        const Vec2f o2_o1  = obj_1.position - obj_2.position;
         const float dist2 = o2_o1.x * o2_o1.x + o2_o1.y * o2_o1.y;
         if (dist2 < 1.0f && dist2 > eps) {
             const float dist          = sqrt(dist2);
             // Radius are all equal to 1.0f
             const float delta  = response_coef * 0.5f * (1.0f - dist);
-            const Vec2 col_vec = (o2_o1 / dist) * delta;
+            const Vec2f col_vec = (o2_o1 / dist) * delta;
             obj_1.position += col_vec;
             obj_2.position -= col_vec;
         }
@@ -56,20 +56,17 @@ struct PhysicSolver
     {
         for (uint32_t i{0}; i < c.objects_count; ++i) {
             const uint32_t atom_idx = c.objects[i];
-            for (uint32_t j{i + 1}; j < c.objects_count; ++j) {
-                solveContact(atom_idx, c.objects[j]);
-            }
+            checkAtomCellCollisions(atom_idx, grid.data[index]);
             checkAtomCellCollisions(atom_idx, grid.data[index + 1]);
             checkAtomCellCollisions(atom_idx, grid.data[index + grid.height - 1]);
             checkAtomCellCollisions(atom_idx, grid.data[index + grid.height    ]);
             checkAtomCellCollisions(atom_idx, grid.data[index + grid.height + 1]);
 
             // Double checks
-            // checkAtomCellCollisions(atom_idx, grid.data[index - 1]);
-            // checkAtomCellCollisions(atom_idx, grid.data[index]);
-            // checkAtomCellCollisions(atom_idx, grid.data[index - grid.height - 1]);
-            // checkAtomCellCollisions(atom_idx, grid.data[index - grid.height    ]);
-            // checkAtomCellCollisions(atom_idx, grid.data[index - grid.height + 1]);
+            checkAtomCellCollisions(atom_idx, grid.data[index - 1]);
+            checkAtomCellCollisions(atom_idx, grid.data[index - grid.height - 1]);
+            checkAtomCellCollisions(atom_idx, grid.data[index - grid.height    ]);
+            checkAtomCellCollisions(atom_idx, grid.data[index - grid.height + 1]);
         }
     }
 
@@ -87,9 +84,8 @@ struct PhysicSolver
         const uint32_t thread_count = thread_pool.m_thread_count;
         const uint32_t slice_count  = thread_count * 2;
         const uint32_t slice_size   = (grid.width / slice_count) * grid.height;
-        const uint32_t last_cell    = (2 * (thread_count - 1) + 2) * slice_size;
+        const uint32_t last_cell    = 2 * thread_count * slice_size;
         // Find collisions in two passes to avoid data races
-
         // First collision pass
         for (uint32_t i{0}; i < thread_count; ++i) {
             thread_pool.addTask([this, i, slice_size]{
@@ -123,7 +119,7 @@ struct PhysicSolver
     }
 
     // Add a new object to the solver
-    uint64_t createObject(Vec2 pos)
+    uint64_t createObject(Vec2f pos)
     {
         return objects.emplace_back(pos);
     }
@@ -133,9 +129,9 @@ struct PhysicSolver
         // Perform the sub steps
         const float sub_dt = dt / static_cast<float>(sub_steps);
         for (uint32_t i(sub_steps); i--;) {
-            addObjectsToGrid();
+            updateGrid();
             solveCollisions();
-            updateObjects_multi(sub_dt);
+            updateObjectsMulti(sub_dt);
         }
     }
 
@@ -153,27 +149,29 @@ struct PhysicSolver
         }
     }
 
-    void updateObjects_multi(float const dt)
+    void updateGrid()
     {
-        thread_pool.dispatch(to<uint32_t>(objects.size()), [&](uint32_t const start, uint32_t const end){
+        int32_t i{0};
+        for (PhysicObject& obj : objects.data) {
+            int32_t const idx = static_cast<int32_t>(obj.position.x) * grid.height + static_cast<int32_t>(obj.position.y);
+            if (idx != obj.grid_cell_idx) {
+                grid.moveAtom(i, obj.grid_cell_idx, idx);
+                obj.grid_cell_idx = idx;
+            }
+            ++i;
+        }
+    }
+
+    void updateObjectsMulti(float const dt) {
+        thread_pool.dispatch(static_cast<uint32_t>(objects.size()), [&](uint32_t const start, uint32_t const end){
             for (uint32_t i{start}; i < end; ++i) {
                 PhysicObject& obj = objects.data[i];
-                // Add gravity
-                obj.acceleration += gravity;
-                // Apply Verlet integration
-                obj.update(dt);
-                // Apply map borders collisions
+                // Apply PBD integration
+                obj.update(dt, gravity);
+                // Apply boundaries constraints
                 constexpr float margin = 2.0f;
-                if (obj.position.x > world_size.x - margin) {
-                    obj.position.x = world_size.x - margin;
-                } else if (obj.position.x < margin) {
-                    obj.position.x = margin;
-                }
-                if (obj.position.y > world_size.y - margin) {
-                    obj.position.y = world_size.y - margin;
-                } else if (obj.position.y < margin) {
-                    obj.position.y = margin;
-                }
+                obj.position.x = std::clamp(obj.position.x, margin, world_size.x - margin);
+                obj.position.y = std::clamp(obj.position.y, margin, world_size.y - margin);
             }
         });
     }

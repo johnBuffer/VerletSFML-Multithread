@@ -7,35 +7,32 @@
 struct PhysicObject
 {
     // Verlet
-    Vec2 position      = {0.0f, 0.0f};
-    Vec2 last_position = {0.0f, 0.0f};
-    Vec2 acceleration  = {0.0f, 0.0f};
+    Vec2f position      = {0.0f, 0.0f};
+    Vec2f last_position = {0.0f, 0.0f};
+    int32_t grid_cell_idx = 0;
     sf::Color color;
 
     PhysicObject() = default;
 
     explicit
-    PhysicObject(Vec2 position_)
+    PhysicObject(Vec2f position_)
         : position(position_)
         , last_position(position_)
     {}
 
-    void setPosition(Vec2 const pos)
+    void setPosition(Vec2f const pos)
     {
         position      = pos;
         last_position = pos;
     }
 
-    void update(float const dt)
+    void update(float const dt, Vec2f const gravity)
     {
-        const Vec2 last_update_move = position - last_position;
-
-        const float VELOCITY_DAMPING = 0.0f; // arbitrary, approximating air friction
-
-        const Vec2 new_position = position + last_update_move + (acceleration - last_update_move * VELOCITY_DAMPING) * (dt * dt);
+        const Vec2f last_update_move = position - last_position;
+        //const Vec2 new_position = position + last_update_move + (gravity - last_update_move * 80.0f) * (dt * dt);
+        const Vec2f new_position = position + last_update_move + gravity * (dt * dt);
         last_position           = position;
         position                = new_position;
-        acceleration = {0.0f, 0.0f};
     }
 
     void stop()
@@ -55,24 +52,24 @@ struct PhysicObject
     }
 
     [[nodiscard]]
-    Vec2 getVelocity() const
+    Vec2f getVelocity() const
     {
         return position - last_position;
     }
 
-    void addVelocity(Vec2 const v)
+    void addVelocity(Vec2f const v)
     {
         last_position -= v;
     }
 
-    void setPositionSameSpeed(Vec2 const new_position)
+    void setPositionSameSpeed(Vec2f const new_position)
     {
-        const Vec2 to_last = last_position - position;
+        const Vec2f to_last = last_position - position;
         position           = new_position;
         last_position      = position + to_last;
     }
 
-    void move(Vec2 v)
+    void move(Vec2f v)
     {
         position += v;
     }
