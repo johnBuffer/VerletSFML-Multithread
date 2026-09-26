@@ -57,7 +57,7 @@ public:
         m_window.draw(drawable, render_states);
     }
     
-    void clear(sf::Color color = sf::Color::Black)
+    void clear(sf::Color const color = sf::Color::Black)
     {
         m_window.clear(color);
     }
@@ -81,7 +81,7 @@ public:
     WindowContextHandler(const std::string& window_name,
                          sf::Vector2u window_size,
                          std::uint32_t window_style = sf::Style::Default)
-        : m_window(sf::VideoMode(window_size), window_name, window_style)
+        : m_window(sf::VideoMode(window_size), window_name, sf::State::Fullscreen)
         , m_event_manager(m_window, true)
         , m_render_context(m_window)
     {

@@ -12,14 +12,14 @@
 
 int main()
 {
-    const uint32_t window_width  = 1600;
-    const uint32_t window_height = 900;
-    WindowContextHandler app("Verlet-MultiThread", sf::Vector2u(window_width, window_height), sf::Style::Default);
+    const uint32_t window_width  = 1280;
+    const uint32_t window_height = 720;
+    WindowContextHandler app("Simple PBD", sf::Vector2u(window_width, window_height), sf::Style::Default);
     RenderContext& render_context = app.getRenderContext();
     // Initialize solver and renderer
 
-    tp::ThreadPool thread_pool(15);
-    const Vec2i world_size{300, 300};
+    tp::ThreadPool thread_pool(2);
+    const Vec2i world_size{512, 512};
     PhysicSolver solver{world_size, thread_pool};
     Renderer renderer(solver, thread_pool);
 
@@ -30,7 +30,7 @@ int main()
 
     std::vector<sf::Color> colors;
 
-    bool emit = true;
+    bool emit = false;
     app.getEventManager().addKeyPressedCallback(sf::Keyboard::Key::Space, [&](sfev::CstEv) {
         emit = !emit;
     });
@@ -78,18 +78,24 @@ int main()
     hud_text.setOutlineThickness(1.0f);
     hud_text.setPosition({20.0f, 20.0f});
 
+    float constexpr spawn_delay = 0.1f;
+    float spawn_timer = 0.0f;
+
     while (app.run()) {
-        if (solver.objects.size() < 100000 && emit) {
-            for (uint32_t i{20}; i--;) {
-                const auto id = solver.createObject({2.0f, 10.0f + 1.1f * i});
-                solver.objects[id].last_position.x -= 0.13f;
-                uint64_t const idx = solver.objects.size();
-                if (idx < colors.size()) {
-                    solver.objects[id].color = colors[idx - 1];
-                } else {
-                    solver.objects[id].color = ColorUtils::getRainbow(id * 0.0001f);
-                }
+        if (emit && solver.objects.size() < 1100 && spawn_timer >= spawn_delay) {
+            const auto id = solver.createObject({10.0f, 10.0f});
+            solver.objects[id].last_position.x -= 2.1f * (PhysicSolver::s_objects_radius / spawn_delay) * (dt / static_cast<float>(solver.sub_steps));
+            uint64_t const idx = solver.objects.size();
+            if (idx < colors.size()) {
+                solver.objects[id].color = colors[idx - 1];
+            } else {
+                solver.objects[id].color = ColorUtils::getRainbow(id * 0.01f);
             }
+            spawn_timer -= spawn_delay;
+        }
+
+        if (emit) {
+            spawn_timer += dt;
         }
 
         physics_timer.start();
@@ -97,7 +103,7 @@ int main()
         physics_timer.stop();
 
         render_timer.start();
-        render_context.clear();
+        render_context.clear({20, 20, 20});
         renderer.render(render_context);
         render_timer.stop();
 
@@ -111,7 +117,7 @@ int main()
             << "Frame:   " << frame_ms << " ms\n"
             << "Objects: " << solver.objects.size();
         hud_text.setString(hud.str());
-        render_context.drawDirect(hud_text);
+        //render_context.drawDirect(hud_text);
 
         render_context.display();
     }

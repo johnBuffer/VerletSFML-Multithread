@@ -15,7 +15,7 @@ struct PhysicObject
     PhysicObject() = default;
 
     explicit
-    PhysicObject(Vec2f position_)
+    PhysicObject(Vec2f const position_)
         : position(position_)
         , last_position(position_)
     {}
@@ -29,7 +29,6 @@ struct PhysicObject
     void update(float const dt, Vec2f const gravity)
     {
         const Vec2f last_update_move = position - last_position;
-        //const Vec2 new_position = position + last_update_move + (gravity - last_update_move * 80.0f) * (dt * dt);
         const Vec2f new_position = position + last_update_move + gravity * (dt * dt);
         last_position           = position;
         position                = new_position;

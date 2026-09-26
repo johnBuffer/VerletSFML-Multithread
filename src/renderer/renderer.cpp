@@ -52,8 +52,8 @@ void Renderer::updateParticlesVA()
 {
     objects_va.resize(solver.objects.size() * 6);
 
-    const float texture_size = 1024.0f;
-    const float radius       = 0.5f;
+    constexpr float texture_size = 1024.0f;
+    constexpr float radius       = PhysicSolver::s_objects_radius;
     thread_pool.dispatch(to<uint32_t>(solver.objects.size()), [&](uint32_t start, uint32_t end) {
         for (uint32_t i{start}; i < end; ++i) {
             const PhysicObject& object = solver.objects.data[i];
@@ -62,10 +62,10 @@ void Renderer::updateParticlesVA()
             const Vec2f p1 = object.position + Vec2f{ radius, -radius};
             const Vec2f p2 = object.position + Vec2f{ radius,  radius};
             const Vec2f p3 = object.position + Vec2f{-radius,  radius};
-            const sf::Vector2f t0{0.0f, 0.0f};
-            const sf::Vector2f t1{texture_size, 0.0f};
-            const sf::Vector2f t2{texture_size, texture_size};
-            const sf::Vector2f t3{0.0f, texture_size};
+            constexpr sf::Vector2f t0{0.0f, 0.0f};
+            constexpr sf::Vector2f t1{texture_size, 0.0f};
+            constexpr sf::Vector2f t2{texture_size, texture_size};
+            constexpr sf::Vector2f t3{0.0f, texture_size};
             const sf::Color color = object.color;
 
             objects_va[idx + 0].position = p0;
