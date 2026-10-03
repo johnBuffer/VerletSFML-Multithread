@@ -43,10 +43,10 @@ struct Grid
 		return checkCoords(static_cast<int32_t>(v.x), static_cast<int32_t>(v.y));
 	}
 
-	bool checkCoords(int32_t x, int32_t y) const
+	bool checkCoords(int32_t const x, int32_t const y) const
 	{
-		return static_cast<int32_t>(x) > 0 && static_cast<int32_t>(x) < (width - 1) &&
-               static_cast<int32_t>(y) > 0 && static_cast<int32_t>(y) < (height - 1);
+		return x > 0 && x < (width - 1) &&
+               y > 0 && y < (height - 1);
 	}
 
 	const T& get(int32_t x, int32_t y) const
