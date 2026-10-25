@@ -20,7 +20,7 @@ struct ColorUtils
 
     static sf::Color interpolate(sf::Color color_1, sf::Color color_2, float ratio)
     {
-        return ColorUtils::createColor(
+        return createColor(
             to<float>(color_1.r) + ratio * to<float>(color_2.r - color_1.r),
             to<float>(color_1.g) + ratio * to<float>(color_2.g - color_1.g),
             to<float>(color_1.b) + ratio * to<float>(color_2.b - color_1.b)

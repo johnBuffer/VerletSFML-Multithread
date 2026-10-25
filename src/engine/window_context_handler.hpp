@@ -2,7 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include "render/viewport_handler.hpp"
 #include "common/event_manager.hpp"
-#include "common/utils.hpp"
+#include "common/vec.hpp"
 
 
 class WindowContextHandler;
@@ -14,16 +14,16 @@ public:
     explicit
     RenderContext(sf::RenderWindow& window)
         : m_window(window)
-        , m_viewport_handler(toVector2f(window.getSize()))
+        , m_viewport_handler(static_cast<Vec2f>(window.getSize()))
     {
     }
 
-    void setFocus(sf::Vector2f focus)
+    void setFocus(sf::Vector2f const focus)
     {
         m_viewport_handler.setFocus(focus);
     }
 
-    void setZoom(float zoom)
+    void setZoom(float const zoom)
     {
         m_viewport_handler.setZoom(zoom);
     }

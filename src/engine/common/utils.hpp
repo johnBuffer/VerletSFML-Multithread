@@ -29,9 +29,3 @@ static std::string toString(T value)
     return sx.str();
 }
 
-
-template<typename T>
-sf::Vector2f toVector2f(sf::Vector2<T> v)
-{
-    return {to<float>(v.x), to<float>(v.y)};
-}
