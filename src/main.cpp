@@ -12,19 +12,18 @@
 
 int main()
 {
-    const uint32_t window_width  = 1600;
-    const uint32_t window_height = 900;
-    WindowContextHandler app("Verlet-MultiThread", sf::Vector2u(window_width, window_height), sf::Style::Default);
+    Vec2u constexpr window_size{1600, 900};
+    WindowContextHandler app("Verlet-MultiThread", window_size, sf::Style::Default);
     RenderContext& render_context = app.getRenderContext();
-    // Initialize solver and renderer
 
+    // Initialize solver and renderer
     tp::ThreadPool thread_pool(15);
-    const Vec2i world_size{300, 300};
+    Vec2i constexpr world_size{300, 300};
     PhysicSolver solver{world_size, thread_pool};
     Renderer renderer(solver, thread_pool);
 
-    const float margin = 20.0f;
-    const auto  zoom   = static_cast<float>(window_height - margin) / static_cast<float>(world_size.y);
+    float constexpr margin = 20.0f;
+    auto  constexpr zoom   = (window_size.y - margin) / static_cast<float>(world_size.y);
     render_context.setZoom(zoom);
     render_context.setFocus({world_size.x * 0.5f, world_size.y * 0.5f});
 
@@ -59,7 +58,7 @@ int main()
         solver.grid.clear();
     });
 
-    constexpr uint32_t fps_cap = 60;
+    uint32_t constexpr fps_cap = 60;
     int32_t target_fps = fps_cap;
     app.getEventManager().addKeyPressedCallback(sf::Keyboard::Key::S, [&](sfev::CstEv) {
         target_fps = target_fps ? 0 : fps_cap;
@@ -67,11 +66,11 @@ int main()
     });
 
     // Main loop
-    const float dt = 1.0f / static_cast<float>(fps_cap);
+    float constexpr dt = 1.0f / static_cast<float>(fps_cap);
     AverageTimer physics_timer{fps_cap};
     AverageTimer render_timer{fps_cap};
 
-    const sf::Font font{"res/roboto_regular.ttf"};
+    sf::Font const font{"res/roboto_regular.ttf"};
     sf::Text hud_text{font, "", 20};
     hud_text.setFillColor(sf::Color::White);
     hud_text.setOutlineColor(sf::Color::Black);
@@ -81,7 +80,7 @@ int main()
     while (app.run()) {
         if (solver.objects.size() < 100000 && emit) {
             for (uint32_t i{20}; i--;) {
-                const auto id = solver.createObject({2.0f, 10.0f + 1.1f * i});
+                const auto id = solver.createObject({2.0f, 10.0f + 1.1f * static_cast<float>(i)});
                 solver.objects[id].last_position.x -= 0.13f;
                 uint64_t const idx = solver.objects.size();
                 if (idx < colors.size()) {
