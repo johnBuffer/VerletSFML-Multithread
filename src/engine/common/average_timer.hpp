@@ -7,7 +7,7 @@
 
 struct AverageTimer
 {
-    explicit AverageTimer(uint32_t frame_count = 60)
+    explicit AverageTimer(uint32_t const frame_count = 60)
         : max_frames{frame_count < 1 ? 1 : frame_count}
         , samples(max_frames, 0.0f)
     {
@@ -25,6 +25,7 @@ struct AverageTimer
     }
 
     // Average milliseconds between start() and stop() over the last `max_frames` samples
+    [[nodiscard]]
     float get() const
     {
         return sample_count ? sum / static_cast<float>(sample_count) : 0.0f;
@@ -33,20 +34,20 @@ struct AverageTimer
 private:
     using Clock = std::chrono::steady_clock;
 
-    void addSample(float value)
+    void addSample(float const value)
     {
         sum += value - samples[index];
         samples[index] = value;
-        index = (index + 1) % max_frames;
+        index          = (index + 1) % max_frames;
         if (sample_count < max_frames) {
             ++sample_count;
         }
     }
 
-    uint32_t max_frames;
+    uint32_t           max_frames;
     std::vector<float> samples;
-    uint32_t index = 0;
-    uint32_t sample_count = 0;
-    float sum = 0.0f;
-    Clock::time_point start_point{};
+    uint32_t           index        = 0;
+    uint32_t           sample_count = 0;
+    float              sum          = 0.0f;
+    Clock::time_point  start_point{};
 };

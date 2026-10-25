@@ -27,7 +27,7 @@ struct ColorUtils
         );
     }
 
-    static sf::Color getRainbow(float t)
+    static sf::Color getRainbow(float const t)
     {
         const float r = sin(t);
         const float g = sin(t + 0.33f * 2.0f * Math::PI);
